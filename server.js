@@ -66,6 +66,9 @@ app.post('/mcp/message', async (req, res) => {
   }
 });
 
+// 用户文档页
+app.get('/docs', (req, res) => res.sendFile(path.join(__dirname, 'public', 'docs.html')));
+
 // SPA fallback
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 

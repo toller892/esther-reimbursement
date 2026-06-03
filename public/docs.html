@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FeedmobAI 报销系统 - 用户文档</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#f0fdfa 0%,#ecfdf5 100%);min-height:100vh;color:#115e59}
+.container{max-width:800px;margin:0 auto;padding:40px 28px}
+h1{font-size:28px;font-weight:800;color:#0f766e;margin-bottom:8px}
+.sub{color:#5eead4;font-size:13px;margin-bottom:32px}
+.card{background:#fff;border:1px solid #ccfbf1;border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(15,118,110,.04)}
+.card h2{font-size:17px;color:#0f766e;margin-bottom:14px;font-weight:700}
+.card p,.card li{font-size:14px;line-height:1.8;color:#115e59}
+.card ul{margin:8px 0 0 18px}
+.card li{margin-bottom:4px}
+code{background:#f0fdfa;padding:2px 6px;border-radius:4px;font-size:13px;color:#0d9488;border:1px solid #ccfbf1}
+pre{background:#f0fdfa;padding:14px;border-radius:8px;overflow-x:auto;font-size:12px;line-height:1.7;border:1px solid #ccfbf1;margin-top:8px}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
+.badge-get{background:#d1fae5;color:#065f46}
+.badge-post{background:#dbeafe;color:#1e40af}
+.badge-delete{background:#fee2e2;color:#991b1b}
+.badge-patch{background:#fef3c7;color:#92400e}
+.endpoint{margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #e6fffa}
+.endpoint:last-child{border-bottom:none}
+.endpoint .method{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.endpoint .path{font-family:monospace;font-size:14px;color:#115e59;font-weight:600}
+.endpoint .desc{font-size:13px;color:#5eead4;margin-left:4px}
+a{color:#0d9488}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🧾 FeedmobAI 报销系统</h1>
+  <p class="sub">团队报销管理 · AI + OCR · 月度每人 ¥150 额度</p>
+
+  <div class="card">
+    <h2>📋 概览</h2>
+    <ul>
+      <li>仅限 <code>@feedmob.com</code> 邮箱 Google 登录</li>
+      <li>每人每月报销总额 <strong>¥150</strong>，超出标记 ⚠️ 但仍可提交</li>
+      <li>发票 OCR：火山 Ark vision 模型，支持 JPG/PNG/WebP/PDF</li>
+      <li>外币自动换算 CNY（汇率来源：open.er-api.com）</li>
+      <li>文件存储：Cloudflare R2，鉴权代理下载</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>🔑 获取 Token</h2>
+    <p>登录 Web 页面 → 点击 <strong>🔑 Token</strong> 标签 → 复制 Bearer Token。</p>
+    <p style="margin-top:4px">所有 API 请求头：<code>Authorization: Bearer &lt;token&gt;</code></p>
+  </div>
+
+  <div class="card">
+    <h2>📡 API 端点</h2>
+
+    <div class="endpoint">
+      <div class="method"><span class="badge badge-post">POST</span><span class="path">/api/ocr</span></div>
+      <p class="desc">上传发票 OCR 识别（multipart），返回 R2 存储链接 + 识别结果</p>
+      <pre>curl -X POST {BASE}/api/ocr \
+  -H "Authorization: Bearer TOKEN" \
+  -F "invoices=@invoice.pdf"</pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="method"><span class="badge badge-post">POST</span><span class="path">/api/reimbursements/agent</span></div>
+      <p class="desc">智能体提交报销（JSON body）</p>
+      <pre>curl -X POST {BASE}/api/reimbursements/agent \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"amount":50,"description":"打车","attachments":[...]}'</pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="method"><span class="badge badge-post">POST</span><span class="path">/api/reimbursements</span></div>
+      <p class="desc">人工提交报销（multipart，含文件上传到 R2）</p>
+    </div>
+
+    <div class="endpoint">
+      <div class="method"><span class="badge badge-get">GET</span><span class="path">/api/reimbursements</span></div>
+      <p class="desc">查询列表。参数：<code>?status=pending</code> <code>&limit=20</code></p>
+    </div>
+
+    <div class="endpoint">
+      <div class="method"><span class="badge badge-get">GET</span><span class="path">/api/reimbursements/:id</span></div>
+      <p class="desc">单条详情</p>
+    </div>
+
+    <div class="endpoint">
+      <div class="method"><span class="badge badge-patch">PATCH</span><span class="path">/api/reimbursements/:id</span></div>
+      <p class="desc">修改报销单（仅 pending 状态）。Body: <code>{"amount":60,"description":"更新"}</code></p>
+    </div>
+
+    <div class="endpoint">
+      <div class="method"><span class="badge badge-delete">DELETE</span><span class="path">/api/reimbursements/:id</span></div>
+      <p class="desc">删除报销单</p>
+    </div>
+
+    <div class="endpoint">
+      <div class="method"><span class="badge badge-post">POST</span><span class="path">/api/reimbursements/:id/approve</span></div>
+      <p class="desc">审批通过</p>
+    </div>
+
+    <div class="endpoint">
+      <div class="method"><span class="badge badge-post">POST</span><span class="path">/api/reimbursements/:id/reject</span></div>
+      <p class="desc">审批拒绝。Body: <code>{"reason":"发票不清晰"}</code></p>
+    </div>
+
+    <div class="endpoint">
+      <div class="method"><span class="badge badge-get">GET</span><span class="path">/api/dashboard</span></div>
+      <p class="desc">仪表盘统计</p>
+    </div>
+
+    <div class="endpoint">
+      <div class="method"><span class="badge badge-get">GET</span><span class="path">/api/exchange-rate</span></div>
+      <p class="desc">汇率查询。参数：<code>?base=USD</code></p>
+    </div>
+
+    <div class="endpoint">
+      <div class="method"><span class="badge badge-get">GET</span><span class="path">/api/files/:key</span></div>
+      <p class="desc">鉴权下载 R2 文件（发票 PDF/图片）</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🤖 MCP</h2>
+    <p>端点：<code>https://www.html.living/reimbursement/mcp</code>（JSON-RPC）</p>
+    <p style="margin-top:8px">Tools：submit_reimbursement, query_reimbursements, get_reimbursement_detail, approve_reimbursement, reject_reimbursement, get_dashboard_stats</p>
+  </div>
+
+  <div class="card">
+    <h2>⛓️ 约束</h2>
+    <ul>
+      <li>月度总额：每人 ¥150</li>
+      <li>文件格式：JPG / PNG / WebP / PDF</li>
+      <li>文件大小：≤10MB</li>
+      <li>仅支持 CNY（外币自动按当日汇率换算）</li>
+    </ul>
+  </div>
+</div>
+<script>
+// 动态设置 BASE URL（根据当前页面 URL 推导）
+(function(){
+  const p=location.pathname.replace(/\/+$/,'');
+  const base=p.includes('/')&&p!=='/'?location.origin+'/'+p.split('/')[1]:location.origin;
+  document.querySelectorAll('pre').forEach(el=>{el.textContent=el.textContent.replace(/\{BASE\}/g,base)});
+  document.querySelector('.sub').textContent+='  |  '+base;
+})();
+</script>
+</body>
+</html>
