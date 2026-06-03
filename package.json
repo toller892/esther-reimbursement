@@ -1,0 +1,27 @@
+{
+  "name": "esther-reimbursement",
+  "version": "3.0.0",
+  "description": "Esther 报销系统 V3 — Web + REST API + MCP，Google OAuth + Bearer Token 双鉴权，火山 Ark OCR",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": ["reimbursement", "mcp", "ocr", "esther"],
+  "author": "Tony",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-session": "^1.19.0",
+    "form-data": "^4.0.4",
+    "multer": "^2.1.1",
+    "node-fetch": "^2.7.0",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

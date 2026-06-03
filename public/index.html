@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Esther 报销系统</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--border:#334155;--accent:#3b82f6;--accent2:#8b5cf6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--text:#f1f5f9;--muted:#94a3b8;--radius:8px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:960px;margin:0 auto;padding:20px}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid var(--border);margin-bottom:24px}
+header h1{font-size:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);border:none;cursor:pointer;font-size:14px;font-weight:500;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:.9}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{opacity:.9}
+.btn-success{background:var(--green);color:#fff}.btn-success:hover{opacity:.9}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--muted)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.card h2{font-size:16px;margin-bottom:12px;color:var(--muted)}
+input,select,textarea{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;color:var(--text);font-size:14px;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px;margin-top:10px}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:1fr 1fr}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+.stat{text-align:center;padding:20px 12px}
+.stat .num{font-size:28px;font-weight:700}
+.stat .label{font-size:12px;color:var(--muted);margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:500;font-size:12px}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
+.badge-pending{background:rgba(234,179,8,.15);color:var(--yellow)}
+.badge-approved{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-rejected{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-agent{background:rgba(139,92,246,.15);color:var(--accent2)}
+.badge-human{background:rgba(59,130,246,.15);color:var(--accent)}
+.token-box{display:flex;align-items:center;gap:8px;background:var(--bg);padding:10px 12px;border-radius:var(--radius);border:1px solid var(--border);font-family:monospace;font-size:13px;word-break:break-all}
+.token-box .copy-btn{flex-shrink:0}
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:24px}
+.login-screen .logo{font-size:48px}
+.tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0}
+.tab{padding:8px 16px;cursor:pointer;color:var(--muted);font-size:14px;border-bottom:2px solid transparent;transition:all .15s}
+.tab.active{color:var(--text);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--text)}
+.hidden{display:none!important}
+.ocr-result{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-top:12px;font-size:13px}
+.ocr-result .field{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--border)}
+.ocr-result .field:last-child{border:none}
+.error-msg{color:var(--red);font-size:13px;margin-top:8px}
+@media(max-width:640px){.grid-2,.grid-4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container" id="app"></div>
+
+<script>
+const BASE=location.origin;
+const app=document.getElementById('app');
+
+let currentUser=null;
+let currentTab='dashboard';
+
+// ========== API helpers ==========
+async function api(path,opts={}){
+  const r=await fetch(`${BASE}${path}`,{...opts,headers:{'Content-Type':'application/json',...opts.headers}});
+  return r.json();
+}
+async function apiUpload(path,formData){
+  const r=await fetch(`${BASE}${path}`,{method:'POST',body:formData});
+  return r.json();
+}
+
+// ========== Auth ==========
+async function checkAuth(){
+  const r=await api('/auth/me');
+  if(r.success&&r.data){currentUser=r.data;return true;}
+  currentUser=null;return false;
+}
+
+function showLogin(){
+  app.innerHTML=`
+  <div class="login-screen">
+    <div class="logo">🧾</div>
+    <h1>Esther 报销系统</h1>
+    <p style="color:var(--muted)">仅限 @feedmob.com 邮箱登录</p>
+    <a href="${BASE}/auth/google" class="btn btn-primary" style="text-decoration:none;font-size:16px;padding:12px 32px">
+      🔑 Google 登录
+    </a>
+  </div>`;
+}
+
+// ========== Main layout ==========
+function renderLayout(){
+  app.innerHTML=`
+  <header>
+    <h1>🧾 Esther 报销系统</h1>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:13px;color:var(--muted)">${currentUser.email}</span>
+      <a href="${BASE}/auth/logout" class="btn btn-ghost btn-sm">退出</a>
+    </div>
+  </header>
+  <div class="tabs" id="tabs">
+    <div class="tab" data-tab="dashboard">📊 仪表盘</div>
+    <div class="tab" data-tab="submit">📝 提交报销</div>
+    <div class="tab" data-tab="list">📋 报销列表</div>
+    <div class="tab" data-tab="token">🔑 API Token</div>
+  </div>
+  <div id="content"></div>`;
+
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click',()=>{currentTab=t.dataset.tab;renderTab()});
+    if(t.dataset.tab===currentTab)t.classList.add('active');
+  });
+  renderTab();
+}
+
+async function renderTab(){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===currentTab));
+  const c=document.getElementById('content');
+  switch(currentTab){
+    case 'dashboard': await renderDashboard(c); break;
+    case 'submit': renderSubmit(c); break;
+    case 'list': await renderList(c); break;
+    case 'token': renderToken(c); break;
+  }
+}
+
+// ========== Dashboard ==========
+async function renderDashboard(c){
+  const r=await api('/api/dashboard');
+  if(!r.success){c.innerHTML=`<div class="card"><p class="error-msg">${r.error}</p></div>`;return;}
+  const d=r.data;
+  c.innerHTML=`
+  <div class="card"><div class="grid grid-4">
+    <div class="stat"><div class="num">${d.total}</div><div class="label">总报销单</div></div>
+    <div class="stat"><div class="num" style="color:var(--yellow)">${d.pending}</div><div class="label">待审批</div></div>
+    <div class="stat"><div class="num" style="color:var(--green)">${d.approved}</div><div class="label">已通过</div></div>
+    <div class="stat"><div class="num" style="color:var(--red)">${d.rejected}</div><div class="label">已拒绝</div></div>
+  </div></div>
+  <div class="card"><div class="grid grid-2">
+    <div class="stat"><div class="num">¥${d.totalAmountApproved.toFixed(2)}</div><div class="label">已审批金额</div></div>
+    <div class="stat"><div class="num">¥${d.totalAmountPending.toFixed(2)}</div><div class="label">待审批金额</div></div>
+  </div></div>
+  <div class="card"><h2>待审批明细</h2><p style="color:var(--muted);font-size:13px">AI提交: ${d.pendingAgent} | 人工提交: ${d.pendingHuman}</p></div>`;
+}
+
+// ========== Submit ==========
+function renderSubmit(c){
+  c.innerHTML=`
+  <div class="card">
+    <h2>📝 提交报销</h2>
+    <form id="submitForm">
+      <label>上传发票（JPG/PNG/WebP/PDF，最多5张）</label>
+      <input type="file" id="invoiceFiles" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" style="padding:6px">
+      <button type="button" class="btn btn-ghost btn-sm" id="ocrBtn" style="margin-top:8px">🔍 OCR 识别</button>
+      <div id="ocrResult"></div>
+
+      <label>金额 (CNY)</label>
+      <input type="number" id="amount" step="0.01" min="0.01" max="150" required placeholder="最大 150">
+      <div class="grid grid-2">
+        <div><label>类别</label>
+          <select id="category">
+            <option value="general">一般</option>
+            <option value="transport">交通</option>
+            <option value="meal">餐饮</option>
+            <option value="office">办公</option>
+          </select>
+        </div>
+        <div><label>日期</label>
+          <input type="date" id="invDate">
+        </div>
+      </div>
+      <label>描述</label>
+      <textarea id="description" rows="2" placeholder="报销事由"></textarea>
+      <div style="margin-top:16px;display:flex;gap:8px">
+        <button type="submit" class="btn btn-primary">提交报销</button>
+      </div>
+      <div id="submitMsg" style="margin-top:8px"></div>
+    </form>
+  </div>`;
+
+  const form=document.getElementById('submitForm');
+  form.querySelector('#ocrBtn').addEventListener('click',async()=>{
+    const files=document.getElementById('invoiceFiles').files;
+    if(!files.length){alert('请先选择发票文件');return;}
+    const fd=new FormData();
+    for(const f of files)fd.append('invoices',f);
+    document.getElementById('ocrResult').innerHTML='<p style="color:var(--muted)">OCR 识别中...</p>';
+    const r=await apiUpload('/api/ocr',fd);
+    if(!r.success){document.getElementById('ocrResult').innerHTML=`<p class="error-msg">${r.error}</p>`;return;}
+    const ocr=r.data[0]?.ocr;
+    if(!ocr?.success){document.getElementById('ocrResult').innerHTML=`<p class="error-msg">${ocr?.error||'OCR 失败'}</p>`;return;}
+    const e=ocr.data.extracted;
+    // 填充表单
+    if(e.amount)document.getElementById('amount').value=e.amount;
+    if(e.category)document.getElementById('category').value=e.category;
+    if(e.date)document.getElementById('invDate').value=e.date;
+    if(e.description)document.getElementById('description').value=e.description;
+    document.getElementById('ocrResult').innerHTML=`
+    <div class="ocr-result">
+      <div class="field"><span>金额</span><span>¥${e.amount||'-'}</span></div>
+      <div class="field"><span>商户</span><span>${e.merchant||'-'}</span></div>
+      <div class="field"><span>日期</span><span>${e.date||'-'}</span></div>
+      <div class="field"><span>类别</span><span>${e.category||'-'}</span></div>
+      <div class="field"><span>描述</span><span>${e.description||'-'}</span></div>
+      <div class="field"><span>置信度</span><span>${((e.confidence||0)*100).toFixed(0)}%</span></div>
+    </div>`;
+  });
+
+  form.addEventListener('submit',async(e)=>{
+    e.preventDefault();
+    const fd=new FormData();
+    const files=document.getElementById('invoiceFiles').files;
+    for(const f of files)fd.append('invoices',f);
+    fd.append('amount',document.getElementById('amount').value);
+    fd.append('category',document.getElementById('category').value);
+    fd.append('description',document.getElementById('description').value);
+    fd.append('metadata',JSON.stringify({date:document.getElementById('invDate').value}));
+    const r=await apiUpload('/api/reimbursements',fd);
+    const msg=document.getElementById('submitMsg');
+    if(r.success){msg.innerHTML=`<span style="color:var(--green)">✅ 提交成功！ID: ${r.data.id}</span>`;form.reset();}
+    else msg.innerHTML=`<span class="error-msg">❌ ${r.error}</span>`;
+  });
+}
+
+// ========== List ==========
+async function renderList(c){
+  const r=await api('/api/reimbursements?limit=50');
+  if(!r.success){c.innerHTML=`<div class="card"><p class="error-msg">${r.error}</p></div>`;return;}
+  const list=r.data;
+  if(!list.length){c.innerHTML='<div class="card"><p style="color:var(--muted)">暂无报销记录</p></div>';return;}
+  c.innerHTML=`
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h2 style="margin:0">📋 报销列表</h2>
+      <select id="statusFilter" class="btn btn-ghost btn-sm" style="width:auto">
+        <option value="">全部</option><option value="pending">待审批</option><option value="approved">已通过</option><option value="rejected">已拒绝</option>
+      </select>
+    </div>
+    <table>
+      <thead><tr><th>ID</th><th>类型</th><th>金额</th><th>类别</th><th>描述</th><th>提交人</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+      <tbody id="listBody"></tbody>
+    </table>
+  </div>`;
+
+  function renderRows(data){
+    document.getElementById('listBody').innerHTML=data.map(r=>`
+    <tr>
+      <td style="font-family:monospace;font-size:11px">${r.id.slice(0,8)}</td>
+      <td><span class="badge badge-${r.submitterType}">${r.submitterType==='agent'?'AI':'人工'}</span></td>
+      <td>¥${r.amount.toFixed(2)}</td>
+      <td>${{general:'一般',transport:'交通',meal:'餐饮',office:'办公'}[r.category]||r.category}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.description}</td>
+      <td>${r.submitterName}</td>
+      <td><span class="badge badge-${r.status}">${{pending:'待审批',approved:'已通过',rejected:'已拒绝'}[r.status]}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${new Date(r.createdAt).toLocaleDateString('zh-CN')}</td>
+      <td>${r.status==='pending'?`
+        <button class="btn btn-success btn-sm" onclick="approve('${r.id}')">✓</button>
+        <button class="btn btn-danger btn-sm" onclick="reject('${r.id}')">✗</button>`:'-'}</td>
+    </tr>`).join('');
+  }
+
+  renderRows(list);
+  document.getElementById('statusFilter').addEventListener('change',async(e)=>{
+    const filtered=await api(`/api/reimbursements?status=${e.target.value}&limit=50`);
+    renderRows(filtered.success?filtered.data:[]);
+  });
+}
+
+window.approve=async(id)=>{
+  const r=await api(`/api/reimbursements/${id}/approve`,{method:'POST',body:JSON.stringify({comment:'审批通过'})});
+  if(r.success)renderTab();else alert(r.error);
+};
+window.reject=async(id)=>{
+  const reason=prompt('拒绝原因:');
+  if(!reason)return;
+  const r=await api(`/api/reimbursements/${id}/reject`,{method:'POST',body:JSON.stringify({reason})});
+  if(r.success)renderTab();else alert(r.error);
+};
+
+// ========== Token ==========
+function renderToken(c){
+  c.innerHTML=`
+  <div class="card">
+    <h2>🔑 API Token</h2>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:12px">
+      用于智能体/API 调用鉴权。请求头：<code style="color:var(--accent)">Authorization: Bearer &lt;token&gt;</code>
+    </p>
+    <div class="token-box">
+      <span id="tokenValue">${currentUser.apiToken||'加载中...'}</span>
+      <button class="btn btn-ghost btn-sm copy-btn" onclick="copyToken()">📋 复制</button>
+    </div>
+    <div style="margin-top:12px">
+      <button class="btn btn-danger btn-sm" onclick="resetToken()">🔄 重置 Token</button>
+    </div>
+    <div id="tokenMsg" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <h2>📖 使用示例</h2>
+    <pre style="background:var(--bg);padding:12px;border-radius:var(--radius);overflow-x:auto;font-size:12px;line-height:1.6">
+# 查询报销列表
+curl -H "Authorization: Bearer &lt;token&gt;" \\
+  ${BASE}/api/reimbursements
+
+# 提交报销（智能体）
+curl -X POST ${BASE}/api/reimbursements/agent \\
+  -H "Authorization: Bearer &lt;token&gt;" \\
+  -H "Content-Type: application/json" \\
+  -d '{"submitterId":"you@feedmob.com","amount":50,"description":"打车","category":"transport"}'
+
+# 上传发票 OCR
+curl -X POST ${BASE}/api/ocr \\
+  -H "Authorization: Bearer &lt;token&gt;" \\
+  -F "invoices=@/path/to/invoice.jpg"
+
+# 仪表盘
+curl -H "Authorization: Bearer &lt;token&gt;" ${BASE}/api/dashboard
+    </pre>
+  </div>`;
+
+  // 获取最新 token
+  api('/auth/me').then(r=>{if(r.success){currentUser.apiToken=r.data.apiToken;document.getElementById('tokenValue').textContent=r.data.apiToken}});
+}
+
+window.copyToken=()=>{
+  const t=document.getElementById('tokenValue').textContent;
+  navigator.clipboard.writeText(t).then(()=>{document.getElementById('tokenMsg').innerHTML='<span style="color:var(--green)">✅ 已复制</span>'});
+};
+window.resetToken=async()=>{
+  if(!confirm('重置后旧 Token 立即失效，确定？'))return;
+  const r=await api('/auth/reset-token',{method:'POST'});
+  if(r.success){
+    currentUser.apiToken=r.data.apiToken;
+    document.getElementById('tokenValue').textContent=r.data.apiToken;
+    document.getElementById('tokenMsg').innerHTML='<span style="color:var(--yellow)">⚠️ Token 已重置，请复制新 Token</span>';
+  }
+};
+
+// ========== Init ==========
+(async()=>{
+  if(await checkAuth())renderLayout();
+  else showLogin();
+})();
+</script>
+</body>
+</html>
