@@ -52,12 +52,17 @@ router.get('/google', passport.authenticate('google', { scope: ['profile', 'emai
 // Google 回调
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/?error=login_failed' }),
-  (req, res) => res.redirect('/')
+  (req, res) => {
+    // 跳转回子路径首页（而非根路径）
+    const basePath = process.env.PUBLIC_BASE_URL ? new URL(process.env.PUBLIC_BASE_URL).pathname.replace(/\/+$/, '') : '';
+    res.redirect(basePath + '/');
+  }
 );
 
 // 退出
 router.get('/logout', (req, res) => {
-  req.logout(() => res.redirect('/'));
+  const basePath = process.env.PUBLIC_BASE_URL ? new URL(process.env.PUBLIC_BASE_URL).pathname.replace(/\/+$/, '') : '';
+  req.logout(() => res.redirect(basePath + '/'));
 });
 
 // 当前用户信息 + API Token
