@@ -57,7 +57,9 @@ th{color:var(--muted);font-weight:500;font-size:12px}
 <div class="container" id="app"></div>
 
 <script>
-const BASE=location.origin;
+// 自动检测挂载路径：如果页面 URL 是 /reimbursement/ 开头，BASE 要带前缀
+const _path = location.pathname.replace(/\/+$/, '');
+const BASE = _path.includes('/') && _path !== '/' ? location.origin + '/' + _path.split('/')[1] : location.origin;
 const app=document.getElementById('app');
 
 let currentUser=null;

@@ -11,11 +11,13 @@ const app = express();
 const PORT = process.env.PORT || 3459;
 const BASE = process.env.PUBLIC_BASE_URL || `http://localhost:${PORT}`;
 
+// 从 PUBLIC_BASE_URL 推导 cookie path，确保子路径部署时 session 正常
+const cookiePath = (process.env.PUBLIC_BASE_URL && new URL(process.env.PUBLIC_BASE_URL).pathname.replace(/\/+$/, '')) || '/';
 app.use(session({
   secret: process.env.SESSION_SECRET || 'esther-secret-key',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 24 * 60 * 60 * 1000 },
+  cookie: { maxAge: 24 * 60 * 60 * 1000, path: cookiePath || '/' },
 }));
 
 app.use(passport.initialize());
