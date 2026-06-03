@@ -7,10 +7,16 @@
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
-  "keywords": ["reimbursement", "mcp", "ocr", "esther"],
+  "keywords": [
+    "reimbursement",
+    "mcp",
+    "ocr",
+    "esther"
+  ],
   "author": "Tony",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1060.0",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "express-session": "^1.19.0",

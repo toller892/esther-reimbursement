@@ -6,8 +6,11 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const { findUserByToken } = require('../services/token');
 const { ocrInvoice } = require('../services/ocr');
+const { uploadFile, downloadToTemp } = require('../services/r2');
 const {
   submitReimbursement, approveReimbursement, rejectReimbursement,
   deleteReimbursement, listReimbursements, getReimbursement,
@@ -17,20 +20,39 @@ const auditMiddleware = require('../middleware/audit');
 
 const router = express.Router();
 
-// Multer: 上传发票（JPG/PNG/WebP/PDF）
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', '..', 'uploads');
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}-${file.originalname}`),
-});
+// Multer: 内存缓冲（上传后直接推 R2，不落本地磁盘）
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const ok = /\.(jpe?g|png|webp|pdf)$/i.test(file.originalname);
     cb(null, ok);
   },
 });
+
+// 辅助：把 multer 文件上传到 R2，然后 OCR
+async function uploadAndOCR(files) {
+  const results = [];
+  for (const f of files) {
+    const r2 = await uploadFile(f.buffer, f.originalname, f.mimetype);
+    // 从 R2 下载到临时路径供 OCR 使用
+    const tmpPath = await downloadToTemp(r2.key);
+    let ocr;
+    try {
+      ocr = await ocrInvoice(tmpPath);
+    } finally {
+      try { fs.unlinkSync(tmpPath); } catch (e) {}
+    }
+    results.push({
+      filename: r2.key,
+      originalName: f.originalname,
+      r2Url: r2.url,
+      size: f.size,
+      ocr,
+    });
+  }
+  return results;
+}
 
 // ============ 鉴权中间件 ============
 async function apiAuth(req, res, next) {
@@ -69,36 +91,31 @@ router.get('/dashboard', apiAuth, async (req, res) => {
   catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-// 上传 + OCR（一步到位：上传文件 → OCR → 返回识别结果）
+// 上传 + OCR（上传到 R2 → 下载临时文件 OCR → 返回结果 + R2 URL）
 router.post('/ocr', apiAuth, upload.array('invoices', 5), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ success: false, error: '请上传发票文件（JPG/PNG/WebP/PDF）' });
     }
-    const results = [];
-    for (const f of req.files) {
-      const ocr = await ocrInvoice(f.path);
-      results.push({
-        filename: f.filename,
-        originalName: f.originalname,
-        path: `/uploads/${f.filename}`,
-        size: f.size,
-        ocr,
-      });
-    }
+    const results = await uploadAndOCR(req.files);
     res.json({ success: true, data: results });
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-// 人工提交报销（上传发票 + 表单）
+// 人工提交报销（上传发票到 R2 + 表单）
 router.post('/reimbursements', apiAuth, upload.array('invoices', 5), auditMiddleware('submit_human'), async (req, res) => {
   try {
-    const attachments = (req.files || []).map(f => ({
-      filename: f.filename,
-      originalName: f.originalname,
-      path: `/uploads/${f.filename}`,
-      size: f.size,
-    }));
+    // 上传文件到 R2
+    const attachments = [];
+    for (const f of (req.files || [])) {
+      const r2 = await uploadFile(f.buffer, f.originalname, f.mimetype);
+      attachments.push({
+        filename: r2.key,
+        originalName: f.originalname,
+        r2Url: r2.url,
+        size: f.size,
+      });
+    }
 
     const result = await submitReimbursement({
       submitterType: 'human',
