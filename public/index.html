@@ -248,7 +248,7 @@ async function renderList(c){
       </div>
     </div>
     <table>
-      <thead><tr><th>ID</th><th>类型</th><th>金额</th><th>描述</th><th>提交人</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+      <thead><tr><th>ID</th><th>类型</th><th>金额</th><th>描述</th><th>提交人</th><th>附件</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
       <tbody id="listBody"></tbody>
     </table>
   </div>
@@ -291,6 +291,12 @@ async function renderList(c){
         ? `<span style="font-size:11px;color:var(--accent2)">💱 ${r.metadata.originalCurrency} $${r.metadata.originalAmount}</span><br>¥${r.amount.toFixed(2)}${r.metadata.exchangeRate ? ` <span style="font-size:10px;color:var(--muted)">(×${Number(r.metadata.exchangeRate).toFixed(2)})</span>` : ''}`
         : `¥${r.amount.toFixed(2)}`;
       const actions=[];
+      const files=(r.attachments||[]);
+      let attachHTML='-';
+      if(files.length>0){
+        const links=files.map(f=>`<a href="${BASE + (f.fileUrl||'/api/files/'+f.filename)}" target="_blank" style="color:var(--accent);font-size:11px" title="${f.originalName||f.filename}">📎${files.length>1?'('+files.length+')':''}</a>`);
+        attachHTML=links.join(' ');
+      }
       if(r.status==='pending'){
         actions.push(`<button class="btn btn-success btn-sm" onclick="approve('${r.id}')">✓</button>`);
         actions.push(`<button class="btn btn-danger btn-sm" onclick="reject('${r.id}')">✗</button>`);
@@ -304,6 +310,7 @@ async function renderList(c){
       <td>${amtHTML}${r.exceedsLimit?`<span class="badge badge-exceed" title="${(r.exceedReasons||[]).join('; ')}">⚠️ 超额${r.exceedAmount>0?' ¥'+r.exceedAmount.toFixed(2):''}</span>`:''}</td>
       <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.description}</td>
       <td>${r.submitterName}</td>
+      <td style="font-size:11px">${attachHTML}</td>
       <td><span class="badge badge-${r.status}">${{pending:'待审批',approved:'已通过',rejected:'已拒绝'}[r.status]}</span></td>
       <td style="font-size:11px;color:var(--muted)">${new Date(r.createdAt).toLocaleDateString('zh-CN')}</td>
       <td style="white-space:nowrap">${actions.join('')||'-'}</td>
