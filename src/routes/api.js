@@ -53,6 +53,16 @@ router.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'esther-reimbursement', version: '3.0.0' });
 });
 
+// 汇率查询（无需鉴权）
+router.get('/exchange-rate', async (req, res) => {
+  try {
+    const { getRatesForBase } = require('../services/exchange-rate');
+    const base = req.query.base || 'USD';
+    const result = await getRatesForBase(base);
+    res.json(result);
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 // 仪表盘
 router.get('/dashboard', apiAuth, async (req, res) => {
   try { res.json({ success: true, data: await getDashboardStats() }); }
