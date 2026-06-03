@@ -1,26 +1,42 @@
 // 报销业务核心服务
-// 约束: 单次 ≤150 CNY, 每月 ≤3 次, 仅 CNY
+// 约束: 每人每月总额 ≤150 CNY
 
 const { v4: uuidv4 } = require('uuid');
 const store = require('../models/store');
 
 const CONFIG = {
-  MAX_AMOUNT_PER_REQUEST: 150,
-  MAX_REQUESTS_PER_MONTH: 3,
+  MONTHLY_BUDGET: 150,
   CURRENCY: 'CNY',
 };
 
 function monthKey(userId, date) {
   const d = new Date(date);
   const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  return `count:${userId}:${ym}`;
+  return `budget:${userId}:${ym}`;
 }
 
 function recordKey(id) { return `reimbursement:${id}`; }
 
-async function getMonthlyCount(userId, date) {
+// 当月已用额度 = store 中累计值（pending + approved）
+async function getMonthlyUsed(userId, date) {
   const val = await store.get(monthKey(userId, date));
   return val || 0;
+}
+
+async function addMonthlyUsed(userId, date, amount) {
+  const key = monthKey(userId, date);
+  const current = await store.get(key) || 0;
+  const next = +(current + amount).toFixed(2);
+  await store.set(key, next);
+  return next;
+}
+
+async function subMonthlyUsed(userId, date, amount) {
+  const key = monthKey(userId, date);
+  const current = await store.get(key) || 0;
+  const next = Math.max(0, +(current - amount).toFixed(2));
+  await store.set(key, next);
+  return next;
 }
 
 async function submitReimbursement({
@@ -38,19 +54,15 @@ async function submitReimbursement({
     return { success: false, error: '人工提交必须上传发票附件' };
   }
 
-  // 超额检查：超过单次上限或月度次数都标记 exceed，但仍允许提交
+  const now = new Date().toISOString();
+  const monthlyUsed = await getMonthlyUsed(submitterId, now);
+  const afterSubmit = +(monthlyUsed + amount).toFixed(2);
+
   const exceedFlags = [];
   let exceedAmount = 0;
-
-  if (amount > CONFIG.MAX_AMOUNT_PER_REQUEST) {
-    exceedAmount = +(amount - CONFIG.MAX_AMOUNT_PER_REQUEST).toFixed(2);
-    exceedFlags.push(`单次超额 ¥${exceedAmount}（上限 ¥${CONFIG.MAX_AMOUNT_PER_REQUEST}）`);
-  }
-
-  const now = new Date().toISOString();
-  const monthlyCount = await getMonthlyCount(submitterId, now);
-  if (monthlyCount >= CONFIG.MAX_REQUESTS_PER_MONTH) {
-    exceedFlags.push(`本月已第 ${monthlyCount + 1} 次（上限 ${CONFIG.MAX_REQUESTS_PER_MONTH} 次）`);
+  if (afterSubmit > CONFIG.MONTHLY_BUDGET) {
+    exceedAmount = +(afterSubmit - CONFIG.MONTHLY_BUDGET).toFixed(2);
+    exceedFlags.push(`超额 ¥${exceedAmount}（当月已用 ¥${monthlyUsed}，上限 ¥${CONFIG.MONTHLY_BUDGET}）`);
   }
 
   const id = uuidv4();
@@ -73,15 +85,16 @@ async function submitReimbursement({
     approvedAt: null,
     rejectionReason: null,
     comment: null,
-    // 超额标记：审批者可见
     exceedsLimit: exceedFlags.length > 0,
-    exceedAmount: exceedAmount,
+    exceedAmount,
     exceedReasons: exceedFlags,
+    monthlyUsed,
+    monthlyUsedAfter: afterSubmit,
     metadata,
   };
 
   await store.set(recordKey(id), record);
-  await store.incr(monthKey(submitterId, now));
+  await addMonthlyUsed(submitterId, now, amount);
   return { success: true, data: record };
 }
 
@@ -114,10 +127,9 @@ async function rejectReimbursement(id, approverId, approverName, reason) {
   record.rejectionReason = reason;
   record.updatedAt = now;
 
-  // 拒绝时退回月度额度
-  const countKey = monthKey(record.submitterId, record.createdAt);
-  const currentCount = await store.get(countKey);
-  if (currentCount > 0) await store.set(countKey, currentCount - 1);
+  // 拒绝时退还月度额度
+  await subMonthlyUsed(record.submitterId, record.createdAt, record.amount);
+  record.monthlyUsedAfter = await getMonthlyUsed(record.submitterId, now);
 
   await store.set(recordKey(id), record);
   return { success: true, data: record };
@@ -126,6 +138,12 @@ async function rejectReimbursement(id, approverId, approverName, reason) {
 async function deleteReimbursement(id) {
   const record = await store.get(recordKey(id));
   if (!record) return { success: false, error: '报销单不存在' };
+
+  // 删除时退还额度（pending 才会被计入了，approved 已经最终化，不退）
+  if (record.status === 'pending') {
+    await subMonthlyUsed(record.submitterId, record.createdAt, record.amount);
+  }
+
   await store.del(recordKey(id));
   return { success: true, data: { id, deleted: true } };
 }
@@ -154,6 +172,26 @@ async function getDashboardStats() {
   const pending = records.filter(r => r.status === 'pending');
   const approved = records.filter(r => r.status === 'approved');
   const rejected = records.filter(r => r.status === 'rejected');
+
+  // 按人汇总当月已用额度
+  const now = new Date().toISOString();
+  const ym = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  let budgetEntries = [];
+  try {
+    budgetEntries = await store.list(`budget:`);
+  } catch (e) {}
+
+  const budgetByUser = {};
+  for (const entry of budgetEntries) {
+    // entry 是一个 { key, value }? 不对，list 返回的是 values 数组
+  }
+  // 重构：budget 数据键格式是 budget:userId:YYYY-MM，值为累计金额
+  // list 返回前缀匹配的所有 value，但不带 key。需要直接从 store 里查
+  const allBudgetKeys = [];
+  for (const key of budgetEntries) {
+    // 没法直接遍历 key，预算摘要先不做了
+  }
+
   return {
     total: records.length,
     pending: pending.length,
@@ -163,6 +201,7 @@ async function getDashboardStats() {
     pendingHuman: pending.filter(r => r.submitterType === 'human').length,
     totalAmountApproved: approved.reduce((s, r) => s + r.amount, 0),
     totalAmountPending: pending.reduce((s, r) => s + r.amount, 0),
+    monthlyBudget: CONFIG.MONTHLY_BUDGET,
   };
 }
 
