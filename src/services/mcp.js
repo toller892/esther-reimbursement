@@ -89,7 +89,7 @@ async function handleMcpRequest(request) {
       result: {
         protocolVersion: '2024-11-05',
         capabilities: { tools: {} },
-        serverInfo: { name: 'esther-reimbursement-mcp', version: '3.0.0' },
+        serverInfo: { name: 'feedmobai-reimbursement-mcp', version: '3.0.0' },
       },
     };
   }

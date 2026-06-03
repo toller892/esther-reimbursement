@@ -1,4 +1,4 @@
-# Esther 报销系统 V3
+# FeedmobAI 报销系统 V3
 
 Web + REST API + MCP 三合一报销系统。支持 Google OAuth 登录、Bearer Token API 鉴权、火山 Ark OCR 发票识别。
 
@@ -92,12 +92,12 @@ Tools: `submit_reimbursement`, `query_reimbursements`, `get_reimbursement_detail
 
 ```bash
 # 更新代码
-cd /home/ubuntu/esther-reimbursement
+cd /home/ubuntu/feedmobai-reimbursement
 git pull && npm install
-sudo systemctl restart esther-reimbursement
+sudo systemctl restart feedmobai-reimbursement
 
 # 查看日志
-sudo journalctl -u esther-reimbursement -f
+sudo journalctl -u feedmobai-reimbursement -f
 ```
 
 ## License

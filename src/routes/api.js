@@ -73,7 +73,7 @@ async function apiAuth(req, res, next) {
 
 // 健康检查（无需鉴权）
 router.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'esther-reimbursement', version: '3.0.0' });
+  res.json({ status: 'ok', service: 'feedmobai-reimbursement', version: '3.0.0' });
 });
 
 // 汇率查询（无需鉴权）

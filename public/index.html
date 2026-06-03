@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Esther 报销系统</title>
+<title>FeedmobAI 报销系统</title>
 <style>
 :root{--bg:#0f172a;--card:#1e293b;--border:#334155;--accent:#3b82f6;--accent2:#8b5cf6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--text:#f1f5f9;--muted:#94a3b8;--radius:8px}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -86,7 +86,7 @@ function showLogin(){
   app.innerHTML=`
   <div class="login-screen">
     <div class="logo">🧾</div>
-    <h1>Esther 报销系统</h1>
+    <h1>FeedmobAI 报销系统</h1>
     <p style="color:var(--muted)">仅限 @feedmob.com 邮箱登录</p>
     <a href="${BASE}/auth/google" class="btn btn-primary" style="text-decoration:none;font-size:16px;padding:12px 32px">
       🔑 Google 登录
@@ -97,7 +97,7 @@ function showLogin(){
 function renderLayout(){
   app.innerHTML=`
   <header>
-    <h1>🧾 Esther 报销系统</h1>
+    <h1>🧾 FeedmobAI 报销系统</h1>
     <div style="display:flex;align-items:center;gap:12px">
       <span style="font-size:13px;color:var(--muted)">${currentUser.email}</span>
       <a href="${BASE}/auth/logout" class="btn btn-ghost btn-sm">退出</a>

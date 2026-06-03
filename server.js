@@ -74,7 +74,7 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Esther Reimbursement V3 on http://localhost:${PORT}`);
+  console.log(`FeedmobAI Reimbursement V3 on http://localhost:${PORT}`);
   console.log(`Public URL: ${BASE}`);
   console.log(`Endpoints:`);
   console.log(`  Web  : ${BASE}/`);
