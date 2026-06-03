@@ -47,6 +47,7 @@ async function uploadAndOCR(files) {
       filename: r2.key,
       originalName: f.originalname,
       r2Url: r2.url,
+      fileUrl: `/api/files/${r2.key}`,
       size: f.size,
       ocr,
     });
@@ -91,6 +92,20 @@ router.get('/dashboard', apiAuth, async (req, res) => {
   catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+// 文件代理下载（鉴权后从 R2 拉取 → 流式返回）
+router.get('/files/:key(*)', apiAuth, async (req, res) => {
+  try {
+    const { downloadStream } = require('../services/r2');
+    const result = await downloadStream(req.params.key);
+    res.setHeader('Content-Type', result.contentType);
+    if (result.contentLength) res.setHeader('Content-Length', result.contentLength);
+    result.stream.pipe(res);
+  } catch (e) {
+    if (e.name === 'NoSuchKey') return res.status(404).json({ success: false, error: '文件不存在' });
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // 上传 + OCR（上传到 R2 → 下载临时文件 OCR → 返回结果 + R2 URL）
 router.post('/ocr', apiAuth, upload.array('invoices', 5), async (req, res) => {
   try {
@@ -113,6 +128,7 @@ router.post('/reimbursements', apiAuth, upload.array('invoices', 5), auditMiddle
         filename: r2.key,
         originalName: f.originalname,
         r2Url: r2.url,
+        fileUrl: `/api/files/${r2.key}`,
         size: f.size,
       });
     }

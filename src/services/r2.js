@@ -60,4 +60,15 @@ async function downloadToTemp(key) {
   return tmpPath;
 }
 
-module.exports = { uploadFile, downloadToTemp };
+// 下载为流 → 直接 pipe 到 HTTP response（不落盘）
+async function downloadStream(key) {
+  const cmd = new GetObjectCommand({ Bucket: R2_BUCKET, Key: key });
+  const response = await s3.send(cmd);
+  return {
+    stream: response.Body,
+    contentType: response.ContentType || 'application/octet-stream',
+    contentLength: response.ContentLength,
+  };
+}
+
+module.exports = { uploadFile, downloadToTemp, downloadStream };
