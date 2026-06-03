@@ -239,30 +239,72 @@ function renderSubmit(c){
 }
 
 async function renderList(c){
-  const r=await api('/api/reimbursements?limit=50');
+  let allData=[];
+  const r=await api('/api/reimbursements?limit=200');
   if(!r.success){c.innerHTML=`<div class="card"><p class="error-msg">${r.error}</p></div>`;return;}
-  const list=r.data;
-  if(!list.length){c.innerHTML='<div class="card"><p style="color:var(--muted)">暂无报销记录</p></div>';return;}
+  allData=r.data;
+  if(!allData.length){c.innerHTML='<div class="card"><p style="color:var(--muted)">暂无报销记录</p></div>';return;}
   c.innerHTML=`
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap">
       <h2 style="margin:0">📋 报销列表</h2>
-      <select id="statusFilter" class="btn btn-ghost btn-sm" style="width:auto">
-        <option value="">全部</option><option value="pending">待审批</option><option value="approved">已通过</option><option value="rejected">已拒绝</option>
-      </select>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="searchBox" placeholder="🔍 搜索描述/提交人..." style="width:180px;padding:6px 10px;font-size:12px">
+        <select id="statusFilter" class="btn btn-ghost btn-sm" style="width:auto">
+          <option value="">全部</option><option value="pending">待审批</option><option value="approved">已通过</option><option value="rejected">已拒绝</option>
+        </select>
+      </div>
     </div>
     <table>
       <thead><tr><th>ID</th><th>类型</th><th>金额</th><th>类别</th><th>描述</th><th>提交人</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
       <tbody id="listBody"></tbody>
     </table>
+  </div>
+  <div id="editModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:100">
+    <div class="card" style="width:360px;max-width:90vw">
+      <h2>✏️ 编辑报销单</h2>
+      <input type="hidden" id="editId">
+      <div class="grid grid-2">
+        <div><label>金额 (CNY)</label><input type="number" id="editAmount" step="0.01" min="0.01"></div>
+        <div><label>类别</label><select id="editCategory"><option value="general">一般</option><option value="transport">交通</option><option value="meal">餐饮</option><option value="office">办公</option></select></div>
+      </div>
+      <label>描述</label><textarea id="editDescription" rows="2"></textarea>
+      <label>日期</label><input type="date" id="editDate">
+      <div style="margin-top:12px;display:flex;gap:6px;justify-content:flex-end">
+        <button class="btn btn-ghost btn-sm" onclick="closeEdit()">取消</button>
+        <button class="btn btn-primary btn-sm" onclick="saveEdit()">保存</button>
+      </div>
+      <div id="editMsg" style="margin-top:8px;font-size:12px"></div>
+    </div>
   </div>`;
 
-  function renderRows(data){
+  function filterData(){
+    const status=document.getElementById('statusFilter')?.value||'';
+    const q=(document.getElementById('searchBox')?.value||'').toLowerCase();
+    return allData.filter(r=>{
+      if(status && r.status!==status) return false;
+      if(q){
+        const txt=[r.description,r.submitterName,r.submitterId,r.id].join(' ').toLowerCase();
+        if(!txt.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderRows(){
+    const data=filterData();
     document.getElementById('listBody').innerHTML=data.map(r=>{
       const forex=r.metadata?.originalCurrency && r.metadata?.originalCurrency!=='CNY';
       const amtHTML=forex
         ? `<span style="font-size:11px;color:var(--accent2)">💱 ${r.metadata.originalCurrency} $${r.metadata.originalAmount}</span><br>¥${r.amount.toFixed(2)}${r.metadata.exchangeRate ? ` <span style="font-size:10px;color:var(--muted)">(×${Number(r.metadata.exchangeRate).toFixed(2)})</span>` : ''}`
         : `¥${r.amount.toFixed(2)}`;
+      const actions=[];
+      if(r.status==='pending'){
+        actions.push(`<button class="btn btn-success btn-sm" onclick="approve('${r.id}')">✓</button>`);
+        actions.push(`<button class="btn btn-danger btn-sm" onclick="reject('${r.id}')">✗</button>`);
+        actions.push(`<button class="btn btn-ghost btn-sm" data-edit-id="${r.id}" data-edit-amount="${r.amount}" data-edit-cat="${r.category}" data-edit-desc="${(r.description||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" data-edit-date="${(r.metadata?.date||'').slice(0,10)}" onclick="openEditBtn(this)" title="编辑">✏️</button>`);
+        actions.push(`<button class="btn btn-ghost btn-sm" onclick="delItem('${r.id}')" title="删除">🗑</button>`);
+      }
       return `
     <tr class="${r.exceedsLimit?'exceed-row':''}" ${r.exceedsLimit?`title="${(r.exceedReasons||[]).join('; ')}"`:''}>
       <td style="font-family:monospace;font-size:11px">${r.id.slice(0,8)}</td>
@@ -273,18 +315,42 @@ async function renderList(c){
       <td>${r.submitterName}</td>
       <td><span class="badge badge-${r.status}">${{pending:'待审批',approved:'已通过',rejected:'已拒绝'}[r.status]}</span></td>
       <td style="font-size:11px;color:var(--muted)">${new Date(r.createdAt).toLocaleDateString('zh-CN')}</td>
-      <td>${r.status==='pending'?`
-        <button class="btn btn-success btn-sm" onclick="approve('${r.id}')">✓</button>
-        <button class="btn btn-danger btn-sm" onclick="reject('${r.id}')">✗</button>`:'-'}</td>
+      <td style="white-space:nowrap">${actions.join('')||'-'}</td>
     </tr>`}).join('');
   }
 
-  renderRows(list);
-  document.getElementById('statusFilter').addEventListener('change',async(e)=>{
-    const filtered=await api(`/api/reimbursements?status=${e.target.value}&limit=50`);
-    renderRows(filtered.success?filtered.data:[]);
-  });
+  renderRows();
+  document.getElementById('statusFilter').addEventListener('change',renderRows);
+  document.getElementById('searchBox').addEventListener('input',renderRows);
 }
+
+window.openEditBtn=(btn)=>{
+  document.getElementById('editId').value=btn.dataset.editId;
+  document.getElementById('editAmount').value=btn.dataset.editAmount;
+  document.getElementById('editCategory').value=btn.dataset.editCat;
+  document.getElementById('editDescription').value=btn.dataset.editDesc;
+  document.getElementById('editDate').value=btn.dataset.editDate||'';
+  document.getElementById('editMsg').innerHTML='';
+  document.getElementById('editModal').style.display='flex';
+};
+window.closeEdit=()=>{document.getElementById('editModal').style.display='none'};
+window.saveEdit=async()=>{
+  const id=document.getElementById('editId').value;
+  const body={};
+  body.amount=parseFloat(document.getElementById('editAmount').value);
+  body.category=document.getElementById('editCategory').value;
+  body.description=document.getElementById('editDescription').value;
+  body.metadata={date:document.getElementById('editDate').value};
+  const r=await api(`/api/reimbursements/${id}`,{method:'PATCH',body:JSON.stringify(body)});
+  const msg=document.getElementById('editMsg');
+  if(r.success){msg.innerHTML='<span style="color:var(--green)">✅ 已保存</span>';setTimeout(renderTab,500)}
+  else msg.innerHTML=`<span class="error-msg">❌ ${r.error}</span>`;
+};
+window.delItem=async(id)=>{
+  if(!confirm('确定删除这笔报销？'))return;
+  const r=await api(`/api/reimbursements/${id}`,{method:'DELETE'});
+  if(r.success) renderTab(); else alert(r.error);
+};
 
 window.approve=async(id)=>{
   const r=await api(`/api/reimbursements/${id}/approve`,{method:'POST',body:JSON.stringify({comment:'审批通过'})});

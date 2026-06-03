@@ -139,13 +139,49 @@ async function deleteReimbursement(id) {
   const record = await store.get(recordKey(id));
   if (!record) return { success: false, error: '报销单不存在' };
 
-  // 删除时退还额度（pending 才会被计入了，approved 已经最终化，不退）
   if (record.status === 'pending') {
     await subMonthlyUsed(record.submitterId, record.createdAt, record.amount);
   }
 
   await store.del(recordKey(id));
   return { success: true, data: { id, deleted: true } };
+}
+
+async function updateReimbursement(id, { amount, category, description, metadata } = {}) {
+  const record = await store.get(recordKey(id));
+  if (!record) return { success: false, error: '报销单不存在' };
+  if (record.status !== 'pending') return { success: false, error: '仅 pending 状态的报销单可修改' };
+
+  // 金额变更 → 调整月度额度
+  if (amount !== undefined && amount !== record.amount) {
+    const diff = +(amount - record.amount).toFixed(2);
+    await subMonthlyUsed(record.submitterId, record.createdAt, record.amount);
+    await addMonthlyUsed(record.submitterId, record.createdAt, amount);
+    record.amount = amount;
+
+    // 重新计算超额
+    const monthlyUsed = await getMonthlyUsed(record.submitterId, record.updatedAt);
+    record.monthlyUsed = +(monthlyUsed - amount).toFixed(2);
+    record.monthlyUsedAfter = monthlyUsed;
+    if (monthlyUsed > CONFIG.MONTHLY_BUDGET) {
+      record.exceedsLimit = true;
+      record.exceedAmount = +(monthlyUsed - CONFIG.MONTHLY_BUDGET).toFixed(2);
+      record.exceedReasons = [`超额 ¥${record.exceedAmount}（当月已用 ¥${monthlyUsed}，上限 ¥${CONFIG.MONTHLY_BUDGET}）`];
+    } else {
+      record.exceedsLimit = false;
+      record.exceedAmount = 0;
+      record.exceedReasons = [];
+    }
+  }
+  if (category !== undefined) record.category = category;
+  if (description !== undefined) record.description = description;
+  if (metadata !== undefined) {
+    record.metadata = { ...record.metadata, ...metadata };
+  }
+  record.updatedAt = new Date().toISOString();
+
+  await store.set(recordKey(id), record);
+  return { success: true, data: record };
 }
 
 async function listReimbursements({ status, submitterType, submitterId, page = 1, limit = 20 } = {}) {
@@ -223,6 +259,6 @@ async function listAuditLogs({ targetId, page = 1, limit = 50 } = {}) {
 
 module.exports = {
   submitReimbursement, approveReimbursement, rejectReimbursement,
-  deleteReimbursement, listReimbursements, getReimbursement,
+  deleteReimbursement, updateReimbursement, listReimbursements, getReimbursement,
   getDashboardStats, addAuditLog, listAuditLogs, CONFIG,
 };

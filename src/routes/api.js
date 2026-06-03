@@ -167,6 +167,21 @@ router.delete('/reimbursements/:id', apiAuth, auditMiddleware('delete'), async (
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+// 修改（仅可改 pending 状态）
+router.patch('/reimbursements/:id', apiAuth, auditMiddleware('update'), async (req, res) => {
+  try {
+    const { updateReimbursement } = require('../services/reimbursement');
+    const result = await updateReimbursement(req.params.id, {
+      amount: req.body.amount !== undefined ? parseFloat(req.body.amount) : undefined,
+      category: req.body.category,
+      description: req.body.description,
+      metadata: req.body.metadata,
+    });
+    if (!result.success) return res.status(400).json(result);
+    res.json(result);
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 // 审批通过
 router.post('/reimbursements/:id/approve', apiAuth, auditMiddleware('approve'), async (req, res) => {
   try {
