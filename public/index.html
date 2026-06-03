@@ -1,56 +1,5 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Esther 报销系统</title>
-<style>
-:root{--bg:#0f172a;--card:#1e293b;--border:#334155;--accent:#3b82f6;--accent2:#8b5cf6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--text:#f1f5f9;--muted:#94a3b8;--radius:8px}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-.container{max-width:960px;margin:0 auto;padding:20px}
-header{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid var(--border);margin-bottom:24px}
-header h1{font-size:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);border:none;cursor:pointer;font-size:14px;font-weight:500;transition:all .15s}
-.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:.9}
-.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{opacity:.9}
-.btn-success{background:var(--green);color:#fff}.btn-success:hover{opacity:.9}
-.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--muted)}
-.btn-sm{padding:4px 10px;font-size:12px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
-.card h2{font-size:16px;margin-bottom:12px;color:var(--muted)}
-input,select,textarea{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;color:var(--text);font-size:14px;width:100%}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
-label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px;margin-top:10px}
-.grid{display:grid;gap:16px}
-.grid-2{grid-template-columns:1fr 1fr}
-.grid-4{grid-template-columns:repeat(4,1fr)}
-.stat{text-align:center;padding:20px 12px}
-.stat .num{font-size:28px;font-weight:700}
-.stat .label{font-size:12px;color:var(--muted);margin-top:4px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border)}
-th{color:var(--muted);font-weight:500;font-size:12px}
-.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
-.badge-pending{background:rgba(234,179,8,.15);color:var(--yellow)}
-.badge-approved{background:rgba(34,197,94,.15);color:var(--green)}
-.badge-rejected{background:rgba(239,68,68,.15);color:var(--red)}
-.badge-agent{background:rgba(139,92,246,.15);color:var(--accent2)}
-.badge-human{background:rgba(59,130,246,.15);color:var(--accent)}
-.token-box{display:flex;align-items:center;gap:8px;background:var(--bg);padding:10px 12px;border-radius:var(--radius);border:1px solid var(--border);font-family:monospace;font-size:13px;word-break:break-all}
-.token-box .copy-btn{flex-shrink:0}
-.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:24px}
-.login-screen .logo{font-size:48px}
-.tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0}
-.tab{padding:8px 16px;cursor:pointer;color:var(--muted);font-size:14px;border-bottom:2px solid transparent;transition:all .15s}
-.tab.active{color:var(--text);border-bottom-color:var(--accent)}
-.tab:hover{color:var(--text)}
-.hidden{display:none!important}
-.ocr-result{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-top:12px;font-size:13px}
-.ocr-result .field{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--border)}
-.ocr-result .field:last-child{border:none}
-.error-msg{color:var(--red);font-size:13px;margin-top:8px}
 .badge-exceed{background:rgba(239,68,68,.15);color:var(--red);margin-left:4px}
+.badge-forex{background:rgba(139,92,246,.15);color:var(--accent2);margin-left:4px}
 .exceed-row{background:rgba(239,68,68,.05)}
 @media(max-width:640px){.grid-2,.grid-4{grid-template-columns:1fr}}
 </style>
@@ -59,7 +8,6 @@ th{color:var(--muted);font-weight:500;font-size:12px}
 <div class="container" id="app"></div>
 
 <script>
-// 自动检测挂载路径：如果页面 URL 是 /reimbursement/ 开头，BASE 要带前缀
 const _path = location.pathname.replace(/\/+$/, '');
 const BASE = _path.includes('/') && _path !== '/' ? location.origin + '/' + _path.split('/')[1] : location.origin;
 const app=document.getElementById('app');
@@ -67,7 +15,6 @@ const app=document.getElementById('app');
 let currentUser=null;
 let currentTab='dashboard';
 
-// ========== API helpers ==========
 async function api(path,opts={}){
   const r=await fetch(`${BASE}${path}`,{...opts,headers:{'Content-Type':'application/json',...opts.headers}});
   return r.json();
@@ -77,7 +24,6 @@ async function apiUpload(path,formData){
   return r.json();
 }
 
-// ========== Auth ==========
 async function checkAuth(){
   const r=await api('/auth/me');
   if(r.success&&r.data){currentUser=r.data;return true;}
@@ -96,7 +42,6 @@ function showLogin(){
   </div>`;
 }
 
-// ========== Main layout ==========
 function renderLayout(){
   app.innerHTML=`
   <header>
@@ -132,7 +77,6 @@ async function renderTab(){
   }
 }
 
-// ========== Dashboard ==========
 async function renderDashboard(c){
   const r=await api('/api/dashboard');
   if(!r.success){c.innerHTML=`<div class="card"><p class="error-msg">${r.error}</p></div>`;return;}
@@ -151,7 +95,6 @@ async function renderDashboard(c){
   <div class="card"><h2>待审批明细</h2><p style="color:var(--muted);font-size:13px">AI提交: ${d.pendingAgent} | 人工提交: ${d.pendingHuman}</p></div>`;
 }
 
-// ========== Submit ==========
 function renderSubmit(c){
   c.innerHTML=`
   <div class="card">
@@ -201,12 +144,10 @@ function renderSubmit(c){
     const isForeign = ocr.data.isForeignCurrency;
     const amountCny = ocr.data.amountCny;
     const rate = ocr.data.exchangeRate;
-    // 填充表单 — 有汇率换算则用 CNY 等值
     document.getElementById('amount').value = isForeign ? amountCny : (e.amount||0);
     if(e.category)document.getElementById('category').value=e.category;
     if(e.date)document.getElementById('invDate').value=e.date;
     if(e.description)document.getElementById('description').value=e.description;
-    // 币种信息存到隐藏字段（提交时带进 metadata）
     document.getElementById('submitForm').dataset.ocrCurrency = e.currency || 'CNY';
     document.getElementById('submitForm').dataset.ocrOriginalAmount = e.amount || '';
     document.getElementById('submitForm').dataset.ocrExchangeRate = rate || '';
@@ -245,7 +186,6 @@ function renderSubmit(c){
   });
 }
 
-// ========== List ==========
 async function renderList(c){
   const r=await api('/api/reimbursements?limit=50');
   if(!r.success){c.innerHTML=`<div class="card"><p class="error-msg">${r.error}</p></div>`;return;}
@@ -266,11 +206,16 @@ async function renderList(c){
   </div>`;
 
   function renderRows(data){
-    document.getElementById('listBody').innerHTML=data.map(r=>`
+    document.getElementById('listBody').innerHTML=data.map(r=>{
+      const forex=r.metadata?.originalCurrency && r.metadata?.originalCurrency!=='CNY';
+      const amtHTML=forex
+        ? `<span style="font-size:11px;color:var(--accent2)">💱 ${r.metadata.originalCurrency} $${r.metadata.originalAmount}</span><br>¥${r.amount.toFixed(2)}${r.metadata.exchangeRate ? ` <span style="font-size:10px;color:var(--muted)">(×${Number(r.metadata.exchangeRate).toFixed(2)})</span>` : ''}`
+        : `¥${r.amount.toFixed(2)}`;
+      return `
     <tr class="${r.exceedsLimit?'exceed-row':''}" ${r.exceedsLimit?`title="${(r.exceedReasons||[]).join('; ')}"`:''}>
       <td style="font-family:monospace;font-size:11px">${r.id.slice(0,8)}</td>
-      <td><span class="badge badge-${r.submitterType}">${r.submitterType==='agent'?'AI':'人工'}</span></td>
-      <td>¥${r.amount.toFixed(2)}${r.exceedsLimit?`<span class="badge badge-exceed" title="${(r.exceedReasons||[]).join('; ')}">⚠️ 超额${r.exceedAmount>0?' ¥'+r.exceedAmount.toFixed(2):''}</span>`:''}</td>
+      <td><span class="badge badge-${r.submitterType}">${r.submitterType==='agent'?'AI':'人工'}${forex?' <span class="badge badge-forex">💱外汇</span>':''}</span></td>
+      <td>${amtHTML}${r.exceedsLimit?`<span class="badge badge-exceed" title="${(r.exceedReasons||[]).join('; ')}">⚠️ 超额${r.exceedAmount>0?' ¥'+r.exceedAmount.toFixed(2):''}</span>`:''}</td>
       <td>${{general:'一般',transport:'交通',meal:'餐饮',office:'办公'}[r.category]||r.category}</td>
       <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.description}</td>
       <td>${r.submitterName}</td>
@@ -279,7 +224,7 @@ async function renderList(c){
       <td>${r.status==='pending'?`
         <button class="btn btn-success btn-sm" onclick="approve('${r.id}')">✓</button>
         <button class="btn btn-danger btn-sm" onclick="reject('${r.id}')">✗</button>`:'-'}</td>
-    </tr>`).join('');
+    </tr>`}).join('');
   }
 
   renderRows(list);
@@ -300,7 +245,6 @@ window.reject=async(id)=>{
   if(r.success)renderTab();else alert(r.error);
 };
 
-// ========== Token ==========
 function renderToken(c){
   c.innerHTML=`
   <div class="card">
@@ -330,17 +274,19 @@ curl -X POST ${BASE}/api/reimbursements/agent \\
   -H "Content-Type: application/json" \\
   -d '{"submitterId":"you@feedmob.com","amount":50,"description":"打车","category":"transport"}'
 
-# 上传发票 OCR
+# 上传发票 OCR（支持外币自动换算 CNY）
 curl -X POST ${BASE}/api/ocr \\
   -H "Authorization: Bearer &lt;token&gt;" \\
-  -F "invoices=@/path/to/invoice.jpg"
+  -F "invoices=@/path/to/invoice.pdf"
 
 # 仪表盘
 curl -H "Authorization: Bearer &lt;token&gt;" ${BASE}/api/dashboard
+
+# 查询汇率
+curl ${BASE}/api/exchange-rate?base=USD
     </pre>
   </div>`;
 
-  // 获取最新 token
   api('/auth/me').then(r=>{if(r.success){currentUser.apiToken=r.data.apiToken;document.getElementById('tokenValue').textContent=r.data.apiToken}});
 }
 
@@ -358,7 +304,6 @@ window.resetToken=async()=>{
   }
 };
 
-// ========== Init ==========
 (async()=>{
   if(await checkAuth())renderLayout();
   else showLogin();
