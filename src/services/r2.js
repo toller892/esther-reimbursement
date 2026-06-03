@@ -2,7 +2,6 @@
 // S3 兼容 API — 存储发票文件（PDF/图片），返回公开 URL
 
 const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const crypto = require('crypto');
 
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '';
