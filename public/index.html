@@ -302,7 +302,7 @@ async function renderList(c){
       if(r.status==='pending'){
         actions.push(`<button class="btn btn-success btn-sm" onclick="approve('${r.id}')">✓</button>`);
         actions.push(`<button class="btn btn-danger btn-sm" onclick="reject('${r.id}')">✗</button>`);
-        actions.push(`<button class="btn btn-ghost btn-sm" data-edit-id="${r.id}" data-edit-amount="${r.amount}" data-edit-cat="${r.category}" data-edit-desc="${(r.description||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" data-edit-date="${(r.metadata?.date||'').slice(0,10)}" onclick="openEditBtn(this)" title="编辑">✏️</button>`);
+        actions.push(`<button class="btn btn-ghost btn-sm" data-edit-id="${r.id}" data-edit-amount="${r.amount}" data-edit-cat="${r.category}" data-edit-desc="${encodeURIComponent(r.description||'')}" data-edit-date="${(r.metadata?.date||'').slice(0,10)}" onclick="openEditBtn(this)" title="编辑">✏️</button>`);
         actions.push(`<button class="btn btn-ghost btn-sm" onclick="delItem('${r.id}')" title="删除">🗑</button>`);
       }
       return `
@@ -328,7 +328,7 @@ window.openEditBtn=(btn)=>{
   document.getElementById('editId').value=btn.dataset.editId;
   document.getElementById('editAmount').value=btn.dataset.editAmount;
   document.getElementById('editCategory').value=btn.dataset.editCat;
-  document.getElementById('editDescription').value=btn.dataset.editDesc;
+  document.getElementById('editDescription').value=decodeURIComponent(btn.dataset.editDesc||'');
   document.getElementById('editDate').value=btn.dataset.editDate||'';
   document.getElementById('editMsg').innerHTML='';
   document.getElementById('editModal').style.display='flex';
