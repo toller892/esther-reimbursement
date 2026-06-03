@@ -31,9 +31,6 @@ async function submitReimbursement({
   if (typeof amount !== 'number' || amount <= 0) {
     return { success: false, error: '金额必须为正数' };
   }
-  if (amount > CONFIG.MAX_AMOUNT_PER_REQUEST) {
-    return { success: false, error: `单次报销金额不得超过 ${CONFIG.MAX_AMOUNT_PER_REQUEST} ${CONFIG.CURRENCY}` };
-  }
   if (currency !== 'CNY') {
     return { success: false, error: '当前仅支持人民币(CNY)报销' };
   }
@@ -41,10 +38,19 @@ async function submitReimbursement({
     return { success: false, error: '人工提交必须上传发票附件' };
   }
 
+  // 超额检查：超过单次上限或月度次数都标记 exceed，但仍允许提交
+  const exceedFlags = [];
+  let exceedAmount = 0;
+
+  if (amount > CONFIG.MAX_AMOUNT_PER_REQUEST) {
+    exceedAmount = +(amount - CONFIG.MAX_AMOUNT_PER_REQUEST).toFixed(2);
+    exceedFlags.push(`单次超额 ¥${exceedAmount}（上限 ¥${CONFIG.MAX_AMOUNT_PER_REQUEST}）`);
+  }
+
   const now = new Date().toISOString();
   const monthlyCount = await getMonthlyCount(submitterId, now);
   if (monthlyCount >= CONFIG.MAX_REQUESTS_PER_MONTH) {
-    return { success: false, error: `本月报销额度已用完（最多 ${CONFIG.MAX_REQUESTS_PER_MONTH} 次）` };
+    exceedFlags.push(`本月已第 ${monthlyCount + 1} 次（上限 ${CONFIG.MAX_REQUESTS_PER_MONTH} 次）`);
   }
 
   const id = uuidv4();
@@ -67,6 +73,10 @@ async function submitReimbursement({
     approvedAt: null,
     rejectionReason: null,
     comment: null,
+    // 超额标记：审批者可见
+    exceedsLimit: exceedFlags.length > 0,
+    exceedAmount: exceedAmount,
+    exceedReasons: exceedFlags,
     metadata,
   };
 

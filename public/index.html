@@ -50,6 +50,8 @@ th{color:var(--muted);font-weight:500;font-size:12px}
 .ocr-result .field{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--border)}
 .ocr-result .field:last-child{border:none}
 .error-msg{color:var(--red);font-size:13px;margin-top:8px}
+.badge-exceed{background:rgba(239,68,68,.15);color:var(--red);margin-left:4px}
+.exceed-row{background:rgba(239,68,68,.05)}
 @media(max-width:640px){.grid-2,.grid-4{grid-template-columns:1fr}}
 </style>
 </head>
@@ -160,8 +162,8 @@ function renderSubmit(c){
       <button type="button" class="btn btn-ghost btn-sm" id="ocrBtn" style="margin-top:8px">🔍 OCR 识别</button>
       <div id="ocrResult"></div>
 
-      <label>金额 (CNY)</label>
-      <input type="number" id="amount" step="0.01" min="0.01" max="150" required placeholder="最大 150">
+      <label>金额 (CNY) <span style="color:var(--muted);font-size:11px">单次上限 ¥150、每月 3 次，超出可提交但会标记 ⚠️ 超额</span></label>
+      <input type="number" id="amount" step="0.01" min="0.01" required placeholder="例如 88.50">
       <div class="grid grid-2">
         <div><label>类别</label>
           <select id="category">
@@ -250,10 +252,10 @@ async function renderList(c){
 
   function renderRows(data){
     document.getElementById('listBody').innerHTML=data.map(r=>`
-    <tr>
+    <tr class="${r.exceedsLimit?'exceed-row':''}" ${r.exceedsLimit?`title="${(r.exceedReasons||[]).join('; ')}"`:''}>
       <td style="font-family:monospace;font-size:11px">${r.id.slice(0,8)}</td>
       <td><span class="badge badge-${r.submitterType}">${r.submitterType==='agent'?'AI':'人工'}</span></td>
-      <td>¥${r.amount.toFixed(2)}</td>
+      <td>¥${r.amount.toFixed(2)}${r.exceedsLimit?`<span class="badge badge-exceed" title="${(r.exceedReasons||[]).join('; ')}">⚠️ 超额${r.exceedAmount>0?' ¥'+r.exceedAmount.toFixed(2):''}</span>`:''}</td>
       <td>${{general:'一般',transport:'交通',meal:'餐饮',office:'办公'}[r.category]||r.category}</td>
       <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.description}</td>
       <td>${r.submitterName}</td>
