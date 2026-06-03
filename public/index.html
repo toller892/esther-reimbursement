@@ -198,14 +198,23 @@ function renderSubmit(c){
     const ocr=r.data[0]?.ocr;
     if(!ocr?.success){document.getElementById('ocrResult').innerHTML=`<p class="error-msg">${ocr?.error||'OCR 失败'}</p>`;return;}
     const e=ocr.data.extracted;
-    // 填充表单
-    if(e.amount)document.getElementById('amount').value=e.amount;
+    const isForeign = ocr.data.isForeignCurrency;
+    const amountCny = ocr.data.amountCny;
+    const rate = ocr.data.exchangeRate;
+    // 填充表单 — 有汇率换算则用 CNY 等值
+    document.getElementById('amount').value = isForeign ? amountCny : (e.amount||0);
     if(e.category)document.getElementById('category').value=e.category;
     if(e.date)document.getElementById('invDate').value=e.date;
     if(e.description)document.getElementById('description').value=e.description;
+    // 币种信息存到隐藏字段（提交时带进 metadata）
+    document.getElementById('submitForm').dataset.ocrCurrency = e.currency || 'CNY';
+    document.getElementById('submitForm').dataset.ocrOriginalAmount = e.amount || '';
+    document.getElementById('submitForm').dataset.ocrExchangeRate = rate || '';
     document.getElementById('ocrResult').innerHTML=`
     <div class="ocr-result">
-      <div class="field"><span>金额</span><span>¥${e.amount||'-'}</span></div>
+      <div class="field"><span>金额</span><span>${isForeign
+        ? `<span style="color:var(--yellow)">${e.currency} $${e.amount}</span> → <strong style="color:var(--green)">¥${amountCny}</strong> <span style="font-size:11px;color:var(--muted)">(汇率 1 ${e.currency} = ${rate?.toFixed(4)} CNY)</span>`
+        : `¥${e.amount||'-'}`}</span></div>
       <div class="field"><span>商户</span><span>${e.merchant||'-'}</span></div>
       <div class="field"><span>日期</span><span>${e.date||'-'}</span></div>
       <div class="field"><span>类别</span><span>${e.category||'-'}</span></div>
@@ -222,7 +231,13 @@ function renderSubmit(c){
     fd.append('amount',document.getElementById('amount').value);
     fd.append('category',document.getElementById('category').value);
     fd.append('description',document.getElementById('description').value);
-    fd.append('metadata',JSON.stringify({date:document.getElementById('invDate').value}));
+    const meta={
+      date:document.getElementById('invDate').value,
+      currency: form.dataset.ocrCurrency || 'CNY',
+      originalAmount: form.dataset.ocrOriginalAmount || '',
+      exchangeRate: form.dataset.ocrExchangeRate || '',
+    };
+    fd.append('metadata',JSON.stringify(meta));
     const r=await apiUpload('/api/reimbursements',fd);
     const msg=document.getElementById('submitMsg');
     if(r.success){msg.innerHTML=`<span style="color:var(--green)">✅ 提交成功！ID: ${r.data.id}</span>`;form.reset();}
