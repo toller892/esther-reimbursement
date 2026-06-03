@@ -1,3 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Esther 报销系统</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--border:#334155;--accent:#3b82f6;--accent2:#8b5cf6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--text:#f1f5f9;--muted:#94a3b8;--radius:8px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:960px;margin:0 auto;padding:20px}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid var(--border);margin-bottom:24px}
+header h1{font-size:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);border:none;cursor:pointer;font-size:14px;font-weight:500;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:.9}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{opacity:.9}
+.btn-success{background:var(--green);color:#fff}.btn-success:hover{opacity:.9}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--muted)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.card h2{font-size:16px;margin-bottom:12px;color:var(--muted)}
+input,select,textarea{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;color:var(--text);font-size:14px;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px;margin-top:10px}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:1fr 1fr}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+.stat{text-align:center;padding:20px 12px}
+.stat .num{font-size:28px;font-weight:700}
+.stat .label{font-size:12px;color:var(--muted);margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:500;font-size:12px}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
+.badge-pending{background:rgba(234,179,8,.15);color:var(--yellow)}
+.badge-approved{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-rejected{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-agent{background:rgba(139,92,246,.15);color:var(--accent2)}
+.badge-human{background:rgba(59,130,246,.15);color:var(--accent)}
+.token-box{display:flex;align-items:center;gap:8px;background:var(--bg);padding:10px 12px;border-radius:var(--radius);border:1px solid var(--border);font-family:monospace;font-size:13px;word-break:break-all}
+.token-box .copy-btn{flex-shrink:0}
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:24px}
+.login-screen .logo{font-size:48px}
+.tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0}
+.tab{padding:8px 16px;cursor:pointer;color:var(--muted);font-size:14px;border-bottom:2px solid transparent;transition:all .15s}
+.tab.active{color:var(--text);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--text)}
+.hidden{display:none!important}
+.ocr-result{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-top:12px;font-size:13px}
+.ocr-result .field{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--border)}
+.ocr-result .field:last-child{border:none}
+.error-msg{color:var(--red);font-size:13px;margin-top:8px}
 .badge-exceed{background:rgba(239,68,68,.15);color:var(--red);margin-left:4px}
 .badge-forex{background:rgba(139,92,246,.15);color:var(--accent2);margin-left:4px}
 .exceed-row{background:rgba(239,68,68,.05)}
