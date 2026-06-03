@@ -59,10 +59,11 @@ tr:hover{background:#f0fdfa}
 .ocr-result .field{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #ccfbf1}
 .ocr-result .field:last-child{border:none}
 .error-msg{color:#e11d48;font-size:13px;margin-top:8px}
-.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:20px}
-.login-screen .logo{font-size:48px}
-.login-screen h1{font-size:28px;color:#0f766e;font-weight:800}
-.login-btn{background:linear-gradient(135deg,#0d9488,#059669);color:#fff;padding:12px 36px;border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;transition:all .15s;display:inline-flex;align-items:center;gap:8px}
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:16px}
+.login-screen .logo{font-size:56px}
+.login-screen h1{font-size:40px;color:#0f766e;font-weight:800;letter-spacing:-1px}
+.login-nav{display:flex;justify-content:flex-end;width:100%;max-width:1040px;padding:20px 28px;position:absolute;top:0;left:50%;transform:translateX(-50%)}
+.login-btn{background:linear-gradient(135deg,#0d9488,#059669);color:#fff;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
 .login-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(13,148,136,.35)}
 @media(max-width:640px){.grid-2,.grid-4{grid-template-columns:1fr}}
 </style>
@@ -95,11 +96,13 @@ async function checkAuth(){
 
 function showLogin(){
   app.innerHTML=`
+  <div class="login-nav">
+    <a href="${BASE}/auth/google" class="login-btn">🔑 Google 登录</a>
+  </div>
   <div class="login-screen">
     <div class="logo">🧾</div>
     <h1>FeedmobAI 报销系统</h1>
     <p style="color:#5eead4;font-size:14px">仅限 @feedmob.com 邮箱登录</p>
-    <a href="${BASE}/auth/google" class="login-btn">🔑 Google 登录</a>
   </div>`;
 }
 
