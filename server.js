@@ -6,6 +6,12 @@ const passport = require('passport');
 const apiRoutes = require('./src/routes/api');
 const authModule = require('./src/routes/auth');
 const { handleMcpRequest } = require('./src/services/mcp');
+const {
+  getOAuthMetadata, getGoogleAuthUrl, handleGoogleCallback,
+  storePkceSession, getAndDeletePkceSession,
+  issueAccessToken, issueAuthCode, consumeAuthCode,
+  generateCodeVerifier, generateCodeChallenge, mcpAuth,
+} = require('./src/services/mcp-oauth');
 
 const app = express();
 const PORT = process.env.PORT || 3459;
@@ -25,7 +31,6 @@ app.use(express.json());
 
 // 静态文件
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 认证
 app.use('/auth', authModule.router);
@@ -33,8 +38,63 @@ app.use('/auth', authModule.router);
 // REST API
 app.use('/api', apiRoutes);
 
-// MCP JSON-RPC
-app.post('/mcp', async (req, res) => {
+// ─── MCP OAuth 端点 ────────────────────────────────────────────────
+
+// OAuth metadata
+app.get('/.well-known/oauth-authorization-server', (req, res) => {
+  res.json(getOAuthMetadata());
+});
+
+// OAuth authorize → Google 登录
+app.get('/mcp/authorize', (req, res) => {
+  const redirectUri = req.query.redirect_uri || '';
+  const codeChallenge = req.query.code_challenge || '';
+  const state = req.query.state || '';
+  if (!codeChallenge) return res.status(400).json({ error: 'missing code_challenge' });
+  const pkceState = state || require('crypto').randomUUID();
+  const verifier = generateCodeVerifier();
+  const challenge = generateCodeChallenge(verifier);
+  storePkceSession(pkceState, codeChallenge, verifier, redirectUri);
+  const url = getGoogleAuthUrl(pkceState, challenge);
+  res.redirect(302, url);
+});
+
+// Google OAuth 回调
+app.get('/mcp/auth/google/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+  if (error) return res.status(400).json({ error: 'access_denied' });
+  if (!code || !state) return res.status(400).json({ error: 'missing code or state' });
+  try {
+    const session = getAndDeletePkceSession(state);
+    if (!session) return res.status(400).json({ error: 'session expired' });
+    const user = await handleGoogleCallback(code, session.codeVerifier);
+    const authCode = issueAuthCode(user, session.codeChallenge);
+    if (session.redirectUri) {
+      const url = new URL(session.redirectUri);
+      url.searchParams.set('code', authCode);
+      if (state) url.searchParams.set('state', state);
+      res.redirect(302, url.toString());
+    } else {
+      res.json({ code: authCode, message: 'Copy this code to your MCP client' });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Token 交换
+app.post('/mcp/token', async (req, res) => {
+  const { code, code_verifier } = req.body || {};
+  if (!code || !code_verifier) return res.status(400).json({ error: 'missing code or code_verifier' });
+  const user = consumeAuthCode(code, code_verifier);
+  if (!user) return res.status(400).json({ error: 'invalid code or verifier' });
+  const accessToken = issueAccessToken(user);
+  res.json({ access_token: accessToken, token_type: 'Bearer', expires_in: 3600 });
+});
+
+// ─── MCP JSON-RPC（鉴权保护）───────────────────────────────────────
+
+app.post('/mcp', mcpAuth, async (req, res) => {
   try {
     const response = await handleMcpRequest(req.body);
     res.json(response);
@@ -43,9 +103,9 @@ app.post('/mcp', async (req, res) => {
   }
 });
 
-// MCP SSE
+// MCP SSE（鉴权保护）
 const mcpClients = new Map();
-app.get('/mcp/sse', (req, res) => {
+app.get('/mcp/sse', mcpAuth, (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -54,7 +114,7 @@ app.get('/mcp/sse', (req, res) => {
   mcpClients.set(clientId, res);
   req.on('close', () => mcpClients.delete(clientId));
 });
-app.post('/mcp/message', async (req, res) => {
+app.post('/mcp/message', mcpAuth, async (req, res) => {
   const clientId = req.query.clientId;
   try {
     const response = await handleMcpRequest(req.body);
@@ -79,11 +139,8 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`FeedmobAI Reimbursement V3 on http://localhost:${PORT}`);
   console.log(`Public URL: ${BASE}`);
-  console.log(`Endpoints:`);
   console.log(`  Web  : ${BASE}/`);
   console.log(`  Auth : ${BASE}/auth/google`);
+  console.log(`  MCP  : ${BASE}/mcp (JSON-RPC, OAuth + Bearer)`);
   console.log(`  API  : ${BASE}/api/reimbursements`);
-  console.log(`  OCR  : ${BASE}/api/ocr`);
-  console.log(`  MCP  : ${BASE}/mcp (JSON-RPC) | ${BASE}/mcp/sse (SSE)`);
-  console.log(`  Dash : ${BASE}/api/dashboard`);
 });
