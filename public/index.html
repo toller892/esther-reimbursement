@@ -11,7 +11,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0;margin-bottom:24px}
 .nav-left{display:flex;align-items:center;gap:12px}
 .nav-left h1{font-size:18px;font-weight:800;color:#0f766e;letter-spacing:-0.5px}
-.nav-right{display:flex;align-items:center;gap:12px;font-size:13px;color:#5eead4}
+.nav-right{display:flex;align-items:center;gap:12px;font-size:13px;color:#0d9488}
 .nav-docs{color:#0d9488;text-decoration:none;font-weight:600;font-size:13px;transition:color .15s}
 .nav-docs:hover{color:#0f766e}
 header{display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-bottom:24px}
@@ -24,7 +24,7 @@ header h1{font-size:20px;font-weight:800;color:#0f766e;letter-spacing:-0.5px}
 .btn-success{background:linear-gradient(135deg,#059669,#047857);color:#fff}
 .btn-success:hover{opacity:.9}
 .btn-ghost{background:#fff;color:#115e59;border:1px solid #ccfbf1}
-.btn-ghost:hover{background:#f0fdfa;border-color:#5eead4}
+.btn-ghost:hover{background:#f0fdfa;border-color:#0d9488}
 .btn-sm{padding:5px 12px;font-size:12px}
 .card{background:#fff;border:1px solid #ccfbf1;border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(15,118,110,.04)}
 .card h2{font-size:16px;margin-bottom:14px;color:#0f766e;font-weight:700}
@@ -36,10 +36,10 @@ label{display:block;font-size:13px;color:#0f766e;font-weight:600;margin-bottom:4
 .grid-4{grid-template-columns:repeat(4,1fr)}
 .stat{text-align:center;padding:16px 12px;background:#f0fdfa;border-radius:10px}
 .stat .num{font-size:26px;font-weight:800;color:#0f766e}
-.stat .label{font-size:12px;color:#5eead4;margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
+.stat .label{font-size:12px;color:#0d9488;margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{text-align:left;padding:10px 8px;border-bottom:1px solid #e6fffa}
-th{color:#5eead4;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}
+th{color:#0d9488;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}
 tr:hover{background:#f0fdfa}
 .badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
 .badge-pending{background:#fef3c7;color:#92400e}
@@ -51,7 +51,7 @@ tr:hover{background:#f0fdfa}
 .exceed-row{background:#fff1f2}
 .token-box{display:flex;align-items:center;gap:8px;background:#f0fdfa;padding:10px 14px;border-radius:8px;border:1px solid #ccfbf1;font-family:monospace;font-size:13px;word-break:break-all;color:#115e59}
 .tabs{display:flex;gap:4px;margin-bottom:20px}
-.tab{padding:8px 18px;cursor:pointer;color:#5eead4;font-size:14px;font-weight:600;border-radius:8px;transition:all .15s}
+.tab{padding:8px 18px;cursor:pointer;color:#0d9488;font-size:14px;font-weight:600;border-radius:8px;transition:all .15s}
 .tab.active{color:#0f766e;background:#fff;box-shadow:0 1px 3px rgba(15,118,110,.08)}
 .tab:hover{color:#0f766e}
 .hidden{display:none!important}
@@ -102,7 +102,7 @@ function showLogin(){
   <div class="login-screen">
     <div class="logo">🧾</div>
     <h1>FeedmobAI 报销系统</h1>
-    <p style="color:#5eead4;font-size:14px">仅限 @feedmob.com 邮箱登录</p>
+    <p style="color:#0d9488;font-size:14px">仅限 @feedmob.com 邮箱登录</p>
   </div>`;
 }
 
@@ -159,7 +159,7 @@ async function renderDashboard(c){
     <div class="stat"><div class="num" style="color:#059669">¥${d.totalAmountApproved.toFixed(2)}</div><div class="label">已审批金额</div></div>
     <div class="stat"><div class="num" style="color:#d97706">¥${d.totalAmountPending.toFixed(2)}</div><div class="label">待审批金额</div></div>
   </div></div>
-  <div class="card"><h2>待审批明细</h2><p style="color:#5eead4;font-size:13px">AI提交: ${d.pendingAgent} | 人工提交: ${d.pendingHuman}</p></div>`;
+  <div class="card"><h2>待审批明细</h2><p style="color:#0d9488;font-size:13px">AI提交: ${d.pendingAgent} | 人工提交: ${d.pendingHuman}</p></div>`;
 }
 
 function renderSubmit(c){
@@ -171,7 +171,7 @@ function renderSubmit(c){
       <input type="file" id="invoiceFiles" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" style="padding:6px">
       <button type="button" class="btn btn-ghost btn-sm" id="ocrBtn" style="margin-top:8px">🔍 OCR 识别</button>
       <div id="ocrResult"></div>
-      <label>金额 (CNY) <span style="color:#5eead4;font-size:11px">每月每人总额 ¥150，超目标记 ⚠️</span></label>
+      <label>金额 (CNY) <span style="color:#0d9488;font-size:11px">每月每人总额 ¥150，超目标记 ⚠️</span></label>
       <input type="number" id="amount" step="0.01" min="0.01" required placeholder="例如 88.50">
       <div class="grid grid-2">
         <div><label>日期</label><input type="date" id="invDate"></div>
@@ -192,7 +192,7 @@ function renderSubmit(c){
     if(!files.length){alert('请先选择发票文件');return;}
     const fd=new FormData();
     for(const f of files)fd.append('invoices',f);
-    document.getElementById('ocrResult').innerHTML='<p style="color:#5eead4">OCR 识别中...</p>';
+    document.getElementById('ocrResult').innerHTML='<p style="color:#0d9488">OCR 识别中...</p>';
     const r=await apiUpload('/api/ocr',fd);
     if(!r.success){document.getElementById('ocrResult').innerHTML=`<p class="error-msg">${r.error}</p>`;return;}
     const ocr=r.data[0]?.ocr;
@@ -210,7 +210,7 @@ function renderSubmit(c){
     document.getElementById('ocrResult').innerHTML=`
     <div class="ocr-result">
       <div class="field"><span>金额</span><span>${isForeign
-        ? `<span style="color:#d97706">${e.currency} $${e.amount}</span> → <strong style="color:#059669">¥${amountCny}</strong> <span style="font-size:11px;color:#5eead4">(×${rate?.toFixed(4)})</span>`
+        ? `<span style="color:#d97706">${e.currency} $${e.amount}</span> → <strong style="color:#059669">¥${amountCny}</strong> <span style="font-size:11px;color:#0d9488">(×${rate?.toFixed(4)})</span>`
         : `¥${e.amount||'-'}`}</span></div>
       <div class="field"><span>商户</span><span>${e.merchant||'-'}</span></div>
       <div class="field"><span>日期</span><span>${e.date||'-'}</span></div>
@@ -246,7 +246,7 @@ async function renderList(c){
   const r=await api('/api/reimbursements?limit=200');
   if(!r.success){c.innerHTML=`<div class="card"><p class="error-msg">${r.error}</p></div>`;return;}
   allData=r.data;
-  if(!allData.length){c.innerHTML='<div class="card"><p style="color:#5eead4">暂无报销记录</p></div>';return;}
+  if(!allData.length){c.innerHTML='<div class="card"><p style="color:#0d9488">暂无报销记录</p></div>';return;}
   c.innerHTML=`
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap">
@@ -296,7 +296,7 @@ async function renderList(c){
     document.getElementById('listBody').innerHTML=data.map(r=>{
       const forex=r.metadata?.originalCurrency && r.metadata?.originalCurrency!=='CNY';
       const amtHTML=forex
-        ? `<span style="font-size:11px;color:#6d28d9">💱 ${r.metadata.originalCurrency} $${r.metadata.originalAmount}</span><br>¥${r.amount.toFixed(2)}<span style="font-size:10px;color:#5eead4">(×${Number(r.metadata.exchangeRate||1).toFixed(2)})</span>`
+        ? `<span style="font-size:11px;color:#6d28d9">💱 ${r.metadata.originalCurrency} $${r.metadata.originalAmount}</span><br>¥${r.amount.toFixed(2)}<span style="font-size:10px;color:#0d9488">(×${Number(r.metadata.exchangeRate||1).toFixed(2)})</span>`
         : `¥${r.amount.toFixed(2)}`;
       const actions=[];
       const files=(r.attachments||[]);
@@ -319,7 +319,7 @@ async function renderList(c){
       <td>${r.submitterName}</td>
       <td style="font-size:12px">${attachHTML}</td>
       <td><span class="badge badge-${r.status}">${{pending:'待审批',approved:'已通过',rejected:'已拒绝'}[r.status]}</span></td>
-      <td style="font-size:11px;color:#5eead4">${new Date(r.createdAt).toLocaleDateString('zh-CN')}</td>
+      <td style="font-size:11px;color:#0d9488">${new Date(r.createdAt).toLocaleDateString('zh-CN')}</td>
       <td style="white-space:nowrap">${actions.join('')||'-'}</td>
     </tr>`}).join('');
   }
@@ -365,7 +365,7 @@ function renderToken(c){
   c.innerHTML=`
   <div class="card">
     <h2>🔑 API Token</h2>
-    <p style="color:#5eead4;font-size:13px;margin-bottom:12px">请求头：<code style="color:#0d9488">Authorization: Bearer &lt;token&gt;</code></p>
+    <p style="color:#0d9488;font-size:13px;margin-bottom:12px">请求头：<code style="color:#0d9488">Authorization: Bearer &lt;token&gt;</code></p>
     <div class="token-box"><span id="tokenValue">${currentUser.apiToken||'加载中...'}</span><button class="btn btn-ghost btn-sm" onclick="copyToken()">📋</button></div>
     <div style="margin-top:12px"><button class="btn btn-danger btn-sm" onclick="resetToken()">🔄 重置</button></div>
     <div id="tokenMsg" style="margin-top:8px"></div>
