@@ -160,17 +160,10 @@ function renderSubmit(c){
       <label>金额 (CNY) <span style="color:var(--muted);font-size:11px">每人每月总额上限 ¥150，超出可提交但会标记 ⚠️ 超额</span></label>
       <input type="number" id="amount" step="0.01" min="0.01" required placeholder="例如 88.50">
       <div class="grid grid-2">
-        <div><label>类别</label>
-          <select id="category">
-            <option value="general">一般</option>
-            <option value="transport">交通</option>
-            <option value="meal">餐饮</option>
-            <option value="office">办公</option>
-          </select>
-        </div>
         <div><label>日期</label>
           <input type="date" id="invDate">
         </div>
+        <div style="visibility:hidden"></div>
       </div>
       <label>描述</label>
       <textarea id="description" rows="2" placeholder="报销事由"></textarea>
@@ -197,7 +190,7 @@ function renderSubmit(c){
     const amountCny = ocr.data.amountCny;
     const rate = ocr.data.exchangeRate;
     document.getElementById('amount').value = isForeign ? amountCny : (e.amount||0);
-    if(e.category)document.getElementById('category').value=e.category;
+    
     if(e.date)document.getElementById('invDate').value=e.date;
     if(e.description)document.getElementById('description').value=e.description;
     document.getElementById('submitForm').dataset.ocrCurrency = e.currency || 'CNY';
@@ -210,7 +203,6 @@ function renderSubmit(c){
         : `¥${e.amount||'-'}`}</span></div>
       <div class="field"><span>商户</span><span>${e.merchant||'-'}</span></div>
       <div class="field"><span>日期</span><span>${e.date||'-'}</span></div>
-      <div class="field"><span>类别</span><span>${e.category||'-'}</span></div>
       <div class="field"><span>描述</span><span>${e.description||'-'}</span></div>
       <div class="field"><span>置信度</span><span>${((e.confidence||0)*100).toFixed(0)}%</span></div>
     </div>`;
@@ -222,7 +214,7 @@ function renderSubmit(c){
     const files=document.getElementById('invoiceFiles').files;
     for(const f of files)fd.append('invoices',f);
     fd.append('amount',document.getElementById('amount').value);
-    fd.append('category',document.getElementById('category').value);
+    fd.append('category','general');
     fd.append('description',document.getElementById('description').value);
     const meta={
       date:document.getElementById('invDate').value,
@@ -256,7 +248,7 @@ async function renderList(c){
       </div>
     </div>
     <table>
-      <thead><tr><th>ID</th><th>类型</th><th>金额</th><th>类别</th><th>描述</th><th>提交人</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+      <thead><tr><th>ID</th><th>类型</th><th>金额</th><th>描述</th><th>提交人</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
       <tbody id="listBody"></tbody>
     </table>
   </div>
@@ -266,7 +258,7 @@ async function renderList(c){
       <input type="hidden" id="editId">
       <div class="grid grid-2">
         <div><label>金额 (CNY)</label><input type="number" id="editAmount" step="0.01" min="0.01"></div>
-        <div><label>类别</label><select id="editCategory"><option value="general">一般</option><option value="transport">交通</option><option value="meal">餐饮</option><option value="office">办公</option></select></div>
+        
       </div>
       <label>描述</label><textarea id="editDescription" rows="2"></textarea>
       <label>日期</label><input type="date" id="editDate">
@@ -310,7 +302,6 @@ async function renderList(c){
       <td style="font-family:monospace;font-size:11px">${r.id.slice(0,8)}</td>
       <td><span class="badge badge-${r.submitterType}">${r.submitterType==='agent'?'AI':'人工'}${forex?' <span class="badge badge-forex">💱外汇</span>':''}</span></td>
       <td>${amtHTML}${r.exceedsLimit?`<span class="badge badge-exceed" title="${(r.exceedReasons||[]).join('; ')}">⚠️ 超额${r.exceedAmount>0?' ¥'+r.exceedAmount.toFixed(2):''}</span>`:''}</td>
-      <td>${{general:'一般',transport:'交通',meal:'餐饮',office:'办公'}[r.category]||r.category}</td>
       <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.description}</td>
       <td>${r.submitterName}</td>
       <td><span class="badge badge-${r.status}">${{pending:'待审批',approved:'已通过',rejected:'已拒绝'}[r.status]}</span></td>
@@ -338,7 +329,7 @@ window.saveEdit=async()=>{
   const id=document.getElementById('editId').value;
   const body={};
   body.amount=parseFloat(document.getElementById('editAmount').value);
-  body.category=document.getElementById('editCategory').value;
+  
   body.description=document.getElementById('editDescription').value;
   body.metadata={date:document.getElementById('editDate').value};
   const r=await api(`/api/reimbursements/${id}`,{method:'PATCH',body:JSON.stringify(body)});

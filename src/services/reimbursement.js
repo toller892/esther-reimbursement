@@ -50,10 +50,7 @@ async function submitReimbursement({
   if (currency !== 'CNY') {
     return { success: false, error: '当前仅支持人民币(CNY)报销' };
   }
-  if (submitterType === 'human' && (!attachments || attachments.length === 0)) {
-    return { success: false, error: '人工提交必须上传发票附件' };
-  }
-
+  // 全部按 AI 提交处理，attachment 可选
   const now = new Date().toISOString();
   const monthlyUsed = await getMonthlyUsed(submitterId, now);
   const afterSubmit = +(monthlyUsed + amount).toFixed(2);
@@ -173,7 +170,6 @@ async function updateReimbursement(id, { amount, category, description, metadata
       record.exceedReasons = [];
     }
   }
-  if (category !== undefined) record.category = category;
   if (description !== undefined) record.description = description;
   if (metadata !== undefined) {
     record.metadata = { ...record.metadata, ...metadata };
